@@ -130,15 +130,69 @@ class GroqProvider(LLMProvider):
         except Exception as e:
             return f"[Groq 오류] {str(e)}"
 
-# ------------------------------
-# ✅ GPT API 엔드포인트 (자동 전환)
-# ------------------------------
+from langchain_community.vectorstores import OpenSearchVectorSearch
+from opensearchpy import OpenSearch
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.llms import HuggingFacePipeline
+from langchain.chains import RetrievalQA
+from transformers import pipeline
+from pydantic import BaseModel
 
-@app.post("/chat")
-def ask_chat(question: Question):
-    try:
-        provider = OpenAIProvider()  # openai 사용 가능한 경우
-        return {"answer": provider.chat(question.prompt)}
-    except Exception:
-        provider = GroqProvider()  # fallback: groq 사용
-        return {"answer": provider.chat(question.prompt)}
+# ------------------------------
+# ✅ RAG 쿼리 모델 정의
+# ------------------------------
+class RAGQuery(BaseModel):
+    query: str
+
+# ------------------------------
+# ✅ OpenSearch 기반 벡터 검색 세팅
+# ------------------------------
+embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+vectorstore = OpenSearchVectorSearch(
+    index_name="rag-index",
+    embedding_function=embedding,
+    opensearch_url="http://localhost:9200"
+)
+
+# ------------------------------
+# ✅ HuggingFace LLM 세팅 (예: Falcon-7B)
+# ------------------------------
+# qa_pipeline = pipeline(
+#     "text-generation",
+#     model="tiiuae/falcon-7b-instruct",
+#     device_map="auto"
+# )
+
+qa_pipeline = pipeline(
+    "text-generation",
+    model="tiiuae/falcon-rw-1b",  # ✅ CPU에서 안정적으로 작동
+    device=-1
+)
+
+llm = HuggingFacePipeline(
+    pipeline=qa_pipeline,
+    model_kwargs={"max_new_tokens": 100, "temperature": 0.7}
+)
+
+# ------------------------------
+# ✅ LangChain RAG Chain 구성
+# ------------------------------
+rag_chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    retriever=vectorstore.as_retriever(),
+    chain_type="stuff",
+    return_source_documents=True
+)
+
+# ------------------------------
+# ✅ FastAPI RAG 엔드포인트
+# ------------------------------
+@app.post("/rag")
+def ask_rag(query: RAGQuery):
+    result = rag_chain.invoke({"query": query.query})
+    return {
+        "query": query.query,
+        "answer": result["result"],
+        "sources": [doc.metadata for doc in result["source_documents"]]
+    }
