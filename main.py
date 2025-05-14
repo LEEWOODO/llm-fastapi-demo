@@ -219,3 +219,61 @@ def ask_llmchain(query: LLMChainQuery):
 
 
 
+# ✅ Step 1: GroqAgentLLM 정의
+from langchain_core.language_models.llms import LLM
+from langchain_core.outputs import Generation, LLMResult
+from typing import ClassVar
+
+class GroqAgentLLM(LLM):
+    model_name: ClassVar[str] = "llama3-8b-8192"
+
+    @property
+    def _llm_type(self) -> str:
+        return "groq"
+
+    def _call(self, prompt: str, stop=None, run_manager=None, **kwargs) -> str:
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        response = client.chat.completions.create(
+            model=self.model_name,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content
+
+from langchain.agents import Tool, initialize_agent, AgentType
+from langchain_experimental.tools.python.tool import PythonREPLTool
+
+# 계산기 도구 구성
+tools = [
+    Tool(
+        name="Calculator",
+        func=PythonREPLTool().run,
+        description="수학 계산을 정확히 수행하는 도구입니다."
+    )
+]
+
+# Groq 기반 LLM 사용
+llm = GroqAgentLLM()
+
+agent_executor = initialize_agent(
+    tools=tools,
+    llm=llm,
+    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+    verbose=True,
+    handle_parsing_errors=True,
+    return_intermediate_steps=True,
+    agent_kwargs={
+        "system_message": (
+            "모든 문제는 반드시 도구(Calculator)를 사용해서 푸세요. 직접 계산하지 마세요."
+        )
+    }
+)
+
+
+
+class AgentQuery(BaseModel):
+    input: str
+
+@app.post("/agent")
+def ask_agent(query: AgentQuery):
+    result = agent_executor.invoke({"input": query.input})
+    return {"result": result["output"]}
