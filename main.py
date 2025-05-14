@@ -324,3 +324,20 @@ from langgraph_flow import langgraph_graph
 @app.post("/langgraph")
 def run_langgraph(q: Question):
     return langgraph_graph.invoke({"question": q.prompt})
+
+
+
+from advanced_langgraph_flow import rag_graph
+from pydantic import BaseModel
+
+class AdvRAGQuery(BaseModel):
+    query: str
+
+@app.post("/adv_rag")
+def run_advanced_rag(q: AdvRAGQuery):
+    result = rag_graph.invoke({"query": q.query})
+    return {
+        "query": q.query,
+        "answer": result["answer"],
+        "docs": result.get("reranked", [])
+    }

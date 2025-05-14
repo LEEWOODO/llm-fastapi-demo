@@ -1,7 +1,17 @@
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Literal, List
-from opensearch_index import vectorstore
 
+from langchain_community.vectorstores import OpenSearchVectorSearch
+from langchain_huggingface import HuggingFaceEmbeddings
+from main import llm  # 기존에 정의된 HuggingFacePipeline 또는 Groq 기반 LLM
+
+# ✅ 검색 전용으로 vectorstore 생성
+embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+vectorstore = OpenSearchVectorSearch(
+    index_name="rag-index",
+    embedding_function=embedding,
+    opensearch_url="http://localhost:9200"
+)
 
 # ------------------------------
 # ✅ 상태 정의
@@ -25,7 +35,6 @@ def rerank_node(state: RAGState) -> RAGState:
     return {**state, "reranked": reranked}
 
 # ✍️ (3) Answer Node
-from main import llm
 def answer_node(state: RAGState) -> RAGState:
     prompt = (
         "아래 문서를 참고하여 질문에 답변해주세요.\n\n"
@@ -37,7 +46,7 @@ def answer_node(state: RAGState) -> RAGState:
     return {**state, "answer": result}
 
 # ------------------------------
-# ✅ 그래프 구성
+# ✅ LangGraph 구성
 # ------------------------------
 builder = StateGraph(RAGState)
 
@@ -52,7 +61,7 @@ builder.add_edge("generate_answer", END)
 
 rag_graph = builder.compile()
 
-
-result = rag_graph.invoke({"query": "LLM 에 대해 알려죠"})
-# print(result["answer"])
-print(f"💡 answer: '{result["answer"]}'")
+# 테스트 실행
+if __name__ == "__main__":
+    result = rag_graph.invoke({"query": "LLM 에 대해 알려죠"})
+    print(f"💡 answer: '{result['answer']}'")
