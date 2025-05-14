@@ -18,27 +18,60 @@ vectorstore = OpenSearchVectorSearch(
 # ------------------------------
 class RAGState(TypedDict):
     query: str
-    docs: List[str]
-    reranked: List[str]
+    docs: List[tuple]  # 또는 List[Tuple[Document, float]]
+    reranked: List[dict]
     answer: str
 
 # 🔍 (1) Retrieval Node
 def retrieve_node(state: RAGState) -> RAGState:
-    docs = vectorstore.similarity_search(state["query"], k=5)
-    texts = [doc.page_content for doc in docs]
-    return {**state, "docs": texts}
+    docs_with_scores = vectorstore.similarity_search_with_score(state["query"], k=10)
+
+    # ✅ score 포함된 튜플로 저장
+    return {**state, "docs": docs_with_scores}
 
 # 🧠 (2) Rerank Node (간단 필터 또는 LLM rerank)
+RERANK_PROMPT = """다음은 사용자 질문과 관련된 문서입니다.
+각 문서가 질문에 얼마나 관련이 있는지 [0.0 ~ 1.0] 사이의 점수로 평가하세요.
+
+질문: "{query}"
+
+문서:
+{doc}
+
+관련도 점수 (숫자만):"""
 def rerank_node(state: RAGState) -> RAGState:
-    # 임시 간단 로직: 길이 순서 정렬
-    reranked = sorted(state["docs"], key=len, reverse=True)[:2]
+    scored = []
+
+    for doc, score in state["docs"]:  # 기존 유사도 score도 함께 있음
+        prompt = RERANK_PROMPT.format(query=state["query"], doc=doc.page_content)
+
+        try:
+            response = llm.invoke(prompt)
+            # LLM 응답에서 숫자만 추출 (예: "0.9")
+            rerank_score = float(response.strip())
+        except Exception as e:
+            print(f"⚠️ Rerank 오류: {e}")
+            rerank_score = 0.0
+
+        scored.append({
+            "content": doc.page_content,
+            "original_score": score,
+            "rerank_score": rerank_score
+        })
+
+    # 🔼 rerank_score 기준 내림차순 정렬
+    reranked = sorted(scored, key=lambda x: x["rerank_score"], reverse=True)[:2]
     return {**state, "reranked": reranked}
 
 # ✍️ (3) Answer Node
 def answer_node(state: RAGState) -> RAGState:
+    docs_text = "\n\n".join([
+        f"[rerank_score={doc['rerank_score']:.2f}] {doc['content']}"
+        for doc in state["reranked"]
+    ])
     prompt = (
         "아래 문서를 참고하여 질문에 답변해주세요.\n\n"
-        f"문서:\n{chr(10).join(state['reranked'])}\n\n"
+        f"{docs_text}\n\n"
         f"질문: {state['query']}\n"
         "답변:"
     )
