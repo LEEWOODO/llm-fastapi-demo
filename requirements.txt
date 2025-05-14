@@ -37,3 +37,4 @@ langchain-community==0.3.25
 langchain-core
 langchain-huggingface
 langchain-experimental
+langgraph==0.4.3

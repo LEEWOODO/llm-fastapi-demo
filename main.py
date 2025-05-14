@@ -313,3 +313,14 @@ class AgentQuery(BaseModel):
 def ask_agent(query: AgentQuery):
     result = agent_executor.invoke({"input": query.input})
     return {"result": result["output"]}
+
+
+
+
+
+# main.py
+from langgraph_flow import langgraph_graph
+
+@app.post("/langgraph")
+def run_langgraph(q: Question):
+    return langgraph_graph.invoke({"question": q.prompt})

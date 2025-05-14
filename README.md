@@ -58,7 +58,10 @@ docker run -d --name opensearch -p 9200:9200 -e "discovery.type=single-node" -e 
 
 4. FastAPI 실행:
 ```bash
-uvicorn main:app --reload
+1. source ./venv/bin/activate # 가상환경 활성화
+2. uvicorn main:app --reload # FastAPI 서버 실행
+3. curl -X GET "http://localhost:8000/docs" # Swagger UI
+4. deactivate # 가상환경 비활성화
 ```
 
 ---
