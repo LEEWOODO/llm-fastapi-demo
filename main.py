@@ -291,14 +291,14 @@ agent_executor = initialize_agent(
     return_intermediate_steps=False,
     agent_kwargs={
         "system_message": (
-            "질문은 반드시 아래의 포맷을 따라야 합니다:\n"
-            "1. Thought:\n"
-            "2. Action: Calculator\n"
-            "3. Action Input: 수식 (예: 3 * 400)\n"
-            "4. Observation: 결과\n"
-            "5. Final Answer: 최종 정답만 작성하세요.\n\n"
-            "**절대 'Action: Final Answer'를 작성하지 마세요.**\n"
-            "Final Answer는 반드시 문자열 'Final Answer:'로 직접 출력되어야 합니다."
+            "다음 규칙을 반드시 지키세요:\n"
+            "1. Thought: 어떤 행동을 해야 하는지 작성\n"
+            "2. Action: 반드시 'Calculator' 로만 작성\n"
+            "3. Action Input: 반드시 수식만 (예: 3 * 400). '×', '곱하기' 금지\n"
+            "4. Observation: 계산 결과\n"
+            "5. Final Answer: 반드시 'Final Answer: 1200' 형식으로 마무리\n\n"
+            "**절대 'Action: Final Answer' 형식은 쓰지 마세요!**\n"
+            "**반드시 'Final Answer: ...' 형식으로 출력하세요!**"
         ),
         "output_parser": SafeFinalAnswerParser()
     }
