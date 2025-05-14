@@ -251,20 +251,56 @@ tools = [
     )
 ]
 
+
+from typing import Union
+from langchain.agents.agent import AgentOutputParser
+from langchain.schema.agent import AgentAction, AgentFinish
+from langchain_core.exceptions import OutputParserException
+import re
+
+class SafeFinalAnswerParser(AgentOutputParser):
+    def parse(self, text: str) -> Union[AgentAction, AgentFinish]:
+        if "Final Answer:" in text:
+            return AgentFinish(
+                return_values={"output": text.split("Final Answer:")[-1].strip()},
+                log=text
+            )
+
+        # ✅ fallback: LLM이 Action: Final Answer 로 착각했을 경우도 처리
+        if '"action": "Final Answer"' in text:
+            match = re.search(r'"action_input":\s*"(.*?)"', text)
+            if match:
+                return AgentFinish(
+                    return_values={"output": match.group(1)},
+                    log=text
+                )
+
+        raise OutputParserException(f"파싱 실패: Final Answer 포맷이 아닙니다\n{text}")
+
+
+
 # Groq 기반 LLM 사용
 llm = GroqAgentLLM()
 
 agent_executor = initialize_agent(
     tools=tools,
     llm=llm,
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+    agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
     verbose=True,
     handle_parsing_errors=True,
-    return_intermediate_steps=True,
+    return_intermediate_steps=False,
     agent_kwargs={
         "system_message": (
-            "모든 문제는 반드시 도구(Calculator)를 사용해서 푸세요. 직접 계산하지 마세요."
-        )
+            "질문은 반드시 아래의 포맷을 따라야 합니다:\n"
+            "1. Thought:\n"
+            "2. Action: Calculator\n"
+            "3. Action Input: 수식 (예: 3 * 400)\n"
+            "4. Observation: 결과\n"
+            "5. Final Answer: 최종 정답만 작성하세요.\n\n"
+            "**절대 'Action: Final Answer'를 작성하지 마세요.**\n"
+            "Final Answer는 반드시 문자열 'Final Answer:'로 직접 출력되어야 합니다."
+        ),
+        "output_parser": SafeFinalAnswerParser()
     }
 )
 
