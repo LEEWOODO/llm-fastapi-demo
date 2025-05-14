@@ -24,20 +24,22 @@ def classify_question(state: QAState) -> Literal["math", "rag"]:
 # ------------------------------
 # ✅ Agent 처리 노드
 # ------------------------------
+from main import agent_executor  # 이미 정의된 Agent 실행기 import
+
 def agent_node(state: QAState) -> QAState:
     question = state["question"]
-    try:
-        result = eval(question.replace("x", "*").replace("\u00D7", "*"))  # 간단 계산만 허용
-        return {"question": question, "answer": str(result)}
-    except Exception:
-        return {"question": question, "answer": "계산 오류"}
+    result = agent_executor.invoke({"input": question})
+    return {"question": question, "answer": result["output"]}
 
 # ------------------------------
 # ✅ RAG 처리 노드 (mock)
 # ------------------------------
+from main import rag_chain  # 이미 정의된 RAG 체인 import
+
 def rag_node(state: QAState) -> QAState:
-    # TODO: 실제 rag_chain.invoke 연결 예정
-    return {"question": state["question"], "answer": "[RAG] 여기에 문서 기반 답변이 생성됩니다."}
+    question = state["question"]
+    result = rag_chain.invoke({"query": question})
+    return {"question": question, "answer": result["result"]}
 
 # ------------------------------
 # ✅ 그래프 구성
