@@ -1,4 +1,5 @@
 import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -131,9 +132,8 @@ class GroqProvider(LLMProvider):
             return f"[Groq 오류] {str(e)}"
 
 from langchain_community.vectorstores import OpenSearchVectorSearch
-from opensearchpy import OpenSearch
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.llms import HuggingFacePipeline
+from langchain_huggingface import HuggingFacePipeline
 from langchain.chains import RetrievalQA
 from transformers import pipeline
 from pydantic import BaseModel
@@ -203,14 +203,14 @@ def ask_rag(query: RAGQuery):
 
 
 from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain_core.runnables import RunnableSequence
 
 class LLMChainQuery(BaseModel):
     name: str
 
 # 프롬프트 템플릿
 prompt = PromptTemplate.from_template("안녕하세요, {name}님. 무엇을 도와드릴까요?")
-llm_chain = LLMChain(prompt=prompt, llm=llm)
+llm_chain = prompt | llm  # Pipe 방식으로 연결
 
 @app.post("/llmchain")
 def ask_llmchain(query: LLMChainQuery):
