@@ -1,5 +1,8 @@
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -8,6 +11,7 @@ from fastapi import FastAPI, HTTPException
 from groq import Groq
 from openai import OpenAI, OpenAIError
 from pydantic import BaseModel
+from agent.agent_executor import agent_executor  # ✅ 정상 작동해야 함
 
 load_dotenv()
 app = FastAPI()
@@ -198,12 +202,8 @@ def ask_rag(query: RAGQuery):
     }
 
 
-
-
-
-
 from langchain.prompts import PromptTemplate
-from langchain_core.runnables import RunnableSequence
+
 
 class LLMChainQuery(BaseModel):
     name: str
@@ -221,7 +221,6 @@ def ask_llmchain(query: LLMChainQuery):
 
 # ✅ Step 1: GroqAgentLLM 정의
 from langchain_core.language_models.llms import LLM
-from langchain_core.outputs import Generation, LLMResult
 from typing import ClassVar
 
 class GroqAgentLLM(LLM):
@@ -239,70 +238,6 @@ class GroqAgentLLM(LLM):
         )
         return response.choices[0].message.content
 
-from langchain.agents import Tool, initialize_agent, AgentType
-from langchain_experimental.tools.python.tool import PythonREPLTool
-
-# 계산기 도구 구성
-tools = [
-    Tool(
-        name="Calculator",
-        func=PythonREPLTool().run,
-        description="수학 계산을 정확히 수행하는 도구입니다."
-    )
-]
-
-
-from typing import Union
-from langchain.agents.agent import AgentOutputParser
-from langchain.schema.agent import AgentAction, AgentFinish
-from langchain_core.exceptions import OutputParserException
-import re
-
-class SafeFinalAnswerParser(AgentOutputParser):
-    def parse(self, text: str) -> Union[AgentAction, AgentFinish]:
-        if "Final Answer:" in text:
-            return AgentFinish(
-                return_values={"output": text.split("Final Answer:")[-1].strip()},
-                log=text
-            )
-
-        # ✅ fallback: LLM이 Action: Final Answer 로 착각했을 경우도 처리
-        if '"action": "Final Answer"' in text:
-            match = re.search(r'"action_input":\s*"(.*?)"', text)
-            if match:
-                return AgentFinish(
-                    return_values={"output": match.group(1)},
-                    log=text
-                )
-
-        raise OutputParserException(f"파싱 실패: Final Answer 포맷이 아닙니다\n{text}")
-
-
-
-# Groq 기반 LLM 사용
-llm = GroqAgentLLM()
-
-agent_executor = initialize_agent(
-    tools=tools,
-    llm=llm,
-    agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
-    verbose=True,
-    handle_parsing_errors=True,
-    return_intermediate_steps=False,
-    agent_kwargs={
-        "system_message": (
-            "다음 규칙을 반드시 지키세요:\n"
-            "1. Thought: 어떤 행동을 해야 하는지 작성\n"
-            "2. Action: 반드시 'Calculator' 로만 작성\n"
-            "3. Action Input: 반드시 수식만 (예: 3 * 400). '×', '곱하기' 금지\n"
-            "4. Observation: 계산 결과\n"
-            "5. Final Answer: 반드시 'Final Answer: 1200' 형식으로 마무리\n\n"
-            "**절대 'Action: Final Answer' 형식은 쓰지 마세요!**\n"
-            "**반드시 'Final Answer: ...' 형식으로 출력하세요!**"
-        ),
-        "output_parser": SafeFinalAnswerParser()
-    }
-)
 
 
 
@@ -313,9 +248,6 @@ class AgentQuery(BaseModel):
 def ask_agent(query: AgentQuery):
     result = agent_executor.invoke({"input": query.input})
     return {"result": result["output"]}
-
-
-
 
 
 # main.py
