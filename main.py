@@ -13,6 +13,11 @@ from openai import OpenAI, OpenAIError
 from pydantic import BaseModel
 from agent.agent_executor import agent_executor  # ✅ 정상 작동해야 함
 
+
+from fastapi import APIRouter
+# from rag.chains import rag_chain
+from models.schema import RAGQuery, AdvRAGQuery, LLMChainQuery, Question, AgentQuery
+
 load_dotenv()
 app = FastAPI()
 
@@ -26,9 +31,6 @@ class Item(BaseModel):
     description: str
 
 items_db: List[Item] = []
-
-class Question(BaseModel):
-    prompt: str
 
 # ------------------------------
 # ✅ RESTful API
@@ -89,33 +91,6 @@ class OpenAIProvider(LLMProvider):
         except OpenAIError as e:
             raise RuntimeError("OpenAI 사용 불가") from e
 
-# class HuggingFaceProvider(LLMProvider):
-#     def chat(self, prompt: str) -> str:
-#         url = "https://api-inference.huggingface.co/models/google/flan-t5-small"
-#         headers = {
-#             "Authorization": f"Bearer {os.getenv('HF_API_KEY')}",
-#             "Content-Type": "application/json"
-#         }
-#         payload = {
-#             "inputs": f"Answer this: {prompt}"
-#         }
-#
-#         response = requests.post(url, headers=headers, json=payload)
-#
-#         if response.status_code != 200:
-#             return f"[HuggingFace 오류] 응답코드 {response.status_code}: {response.text}"
-#
-#         try:
-#             result = response.json()
-#             if isinstance(result, list) and "generated_text" in result[0]:
-#                 return result[0]["generated_text"]
-#             elif isinstance(result, list) and "output" in result[0]:
-#                 return result[0]["output"]
-#             return str(result)
-#         except Exception as e:
-#             return f"[파싱 실패] {str(e)}\n본문: {response.text}"
-
-
 class GroqProvider(LLMProvider):
     def __init__(self):
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -140,13 +115,6 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_huggingface import HuggingFacePipeline
 from langchain.chains import RetrievalQA
 from transformers import pipeline
-from pydantic import BaseModel
-
-# ------------------------------
-# ✅ RAG 쿼리 모델 정의
-# ------------------------------
-class RAGQuery(BaseModel):
-    query: str
 
 # ------------------------------
 # ✅ OpenSearch 기반 벡터 검색 세팅
@@ -158,15 +126,6 @@ vectorstore = OpenSearchVectorSearch(
     embedding_function=embedding,
     opensearch_url="http://localhost:9200"
 )
-
-# ------------------------------
-# ✅ HuggingFace LLM 세팅 (예: Falcon-7B)
-# ------------------------------
-# qa_pipeline = pipeline(
-#     "text-generation",
-#     model="tiiuae/falcon-7b-instruct",
-#     device_map="auto"
-# )
 
 qa_pipeline = pipeline(
     "text-generation",
@@ -204,10 +163,6 @@ def ask_rag(query: RAGQuery):
 
 from langchain.prompts import PromptTemplate
 
-
-class LLMChainQuery(BaseModel):
-    name: str
-
 # 프롬프트 템플릿
 prompt = PromptTemplate.from_template("안녕하세요, {name}님. 무엇을 도와드릴까요?")
 llm_chain = prompt | llm  # Pipe 방식으로 연결
@@ -238,12 +193,6 @@ class GroqAgentLLM(LLM):
         )
         return response.choices[0].message.content
 
-
-
-
-class AgentQuery(BaseModel):
-    input: str
-
 @app.post("/agent")
 def ask_agent(query: AgentQuery):
     result = agent_executor.invoke({"input": query.input})
@@ -260,10 +209,6 @@ def run_langgraph(q: Question):
 
 
 from advanced_langgraph_flow import rag_graph
-from pydantic import BaseModel
-
-class AdvRAGQuery(BaseModel):
-    query: str
 
 @app.post("/adv_rag")
 def run_advanced_rag(q: AdvRAGQuery):
