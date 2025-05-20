@@ -1,9 +1,10 @@
-from langgraph.graph import StateGraph, END
-from typing import TypedDict, Literal, List
+from typing import TypedDict, List
 
 from langchain_community.vectorstores import OpenSearchVectorSearch
 from langchain_huggingface import HuggingFaceEmbeddings
-from main import llm  # 기존에 정의된 HuggingFacePipeline 또는 Groq 기반 LLM
+from langgraph.graph import StateGraph, END
+
+from llm.provider import llm
 
 # ✅ 검색 전용으로 vectorstore 생성
 embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
@@ -12,6 +13,7 @@ vectorstore = OpenSearchVectorSearch(
     embedding_function=embedding,
     opensearch_url="http://localhost:9200"
 )
+
 
 # ------------------------------
 # ✅ 상태 정의
@@ -22,12 +24,14 @@ class RAGState(TypedDict):
     reranked: List[dict]
     answer: str
 
+
 # 🔍 (1) Retrieval Node
 def retrieve_node(state: RAGState) -> RAGState:
     docs_with_scores = vectorstore.similarity_search_with_score(state["query"], k=10)
 
     # ✅ score 포함된 튜플로 저장
     return {**state, "docs": docs_with_scores}
+
 
 # 🧠 (2) Rerank Node (간단 필터 또는 LLM rerank)
 RERANK_PROMPT = """다음은 사용자 질문과 관련된 문서입니다.
@@ -39,6 +43,8 @@ RERANK_PROMPT = """다음은 사용자 질문과 관련된 문서입니다.
 {doc}
 
 관련도 점수 (숫자만):"""
+
+
 def rerank_node(state: RAGState) -> RAGState:
     scored = []
 
@@ -63,6 +69,7 @@ def rerank_node(state: RAGState) -> RAGState:
     reranked = sorted(scored, key=lambda x: x["rerank_score"], reverse=True)[:2]
     return {**state, "reranked": reranked}
 
+
 # ✍️ (3) Answer Node
 def answer_node(state: RAGState) -> RAGState:
     docs_text = "\n\n".join([
@@ -77,6 +84,7 @@ def answer_node(state: RAGState) -> RAGState:
     )
     result = llm.invoke(prompt)
     return {**state, "answer": result}
+
 
 # ------------------------------
 # ✅ LangGraph 구성

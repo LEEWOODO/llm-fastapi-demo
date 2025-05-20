@@ -1,6 +1,8 @@
-from langgraph.graph import StateGraph, END
-from typing import TypedDict, Literal
 import re
+from typing import TypedDict, Literal
+
+from langgraph.graph import StateGraph, END
+
 
 # ------------------------------
 # ✅ 상태 정의
@@ -8,6 +10,7 @@ import re
 class QAState(TypedDict):
     question: str
     answer: str
+
 
 # ------------------------------
 # ✅ 질문 분류 노드 (분기 기준)
@@ -21,25 +24,30 @@ def classify_question(state: QAState) -> Literal["math", "rag"]:
     print("🔀 classified as: rag")
     return "rag"
 
+
 # ------------------------------
 # ✅ Agent 처리 노드
 # ------------------------------
-from main import agent_executor  # 이미 정의된 Agent 실행기 import
+from agent.agent_executor import agent_executor
+
 
 def agent_node(state: QAState) -> QAState:
     question = state["question"]
     result = agent_executor.invoke({"input": question})
     return {"question": question, "answer": result["output"]}
 
+
 # ------------------------------
 # ✅ RAG 처리 노드 (mock)
 # ------------------------------
-from main import rag_chain  # 이미 정의된 RAG 체인 import
+from rag.chains import rag_chain
+
 
 def rag_node(state: QAState) -> QAState:
     question = state["question"]
     result = rag_chain.invoke({"query": question})
     return {"question": question, "answer": result["result"]}
+
 
 # ------------------------------
 # ✅ 그래프 구성
