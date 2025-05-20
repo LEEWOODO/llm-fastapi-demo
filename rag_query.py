@@ -1,14 +1,9 @@
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from dotenv import load_dotenv
 from langchain_community.vectorstores import OpenSearchVectorSearch
-from langchain_core.runnables import RunnableLambda, RunnableSequence
 from langchain_core.prompts import PromptTemplate
-# from langchain_community.chat_models import ChatGroq
-# from langchain.chat_models import ChatOpenAI
-from langchain_community.chat_models import ChatOpenAI
+from langchain_core.runnables import RunnableLambda
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
-
-from dotenv import load_dotenv
 
 load_dotenv()
 
