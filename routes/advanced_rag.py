@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from advanced_langgraph_flow import rag_graph
+from langgraph.advanced_langgraph_flow import rag_graph
 from models.schema import AdvRAGQuery
 
 router = APIRouter()

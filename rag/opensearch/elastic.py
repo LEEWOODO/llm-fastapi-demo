@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 1. 문서 로딩
-loader = TextLoader("docs/sample.txt")
+loader = TextLoader("../../docs/sample.txt")
 documents = loader.load()
 
 # 2. 문장 분할

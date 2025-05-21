@@ -6,7 +6,7 @@ from opensearchpy import OpenSearch
 import os
 
 # 1. 문서 로딩
-loader = TextLoader("docs/sample.txt")
+loader = TextLoader("../../docs/sample.txt")
 documents = loader.load()
 
 # 2. 문서 분할

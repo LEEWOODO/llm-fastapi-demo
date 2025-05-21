@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from langgraph_flow import langgraph_graph
+from langgraph.langgraph_flow import langgraph_graph
 from models.schema import Question
 
 router = APIRouter()

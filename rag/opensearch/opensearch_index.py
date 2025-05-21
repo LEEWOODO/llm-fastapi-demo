@@ -4,7 +4,7 @@ from langchain_community.document_loaders import TextLoader
 from langchain.text_splitter import CharacterTextSplitter
 
 # 1. 문서 로드
-loader = TextLoader("docs/sample.txt")
+loader = TextLoader("../../docs/sample.txt")
 documents = loader.load()
 
 # 2. 문장 분할
