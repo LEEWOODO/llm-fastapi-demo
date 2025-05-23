@@ -6,10 +6,15 @@ from .base import LLMProvider
 
 class SummarizerProvider(LLMProvider):
     def __init__(self):
-        pipe = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
-        llm = HuggingFacePipeline(pipeline=pipe)
+        # pipe = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+        pipe = pipeline("summarization", model="t5-small")
+
+        llm = HuggingFacePipeline(
+            pipeline=pipe,
+            model_kwargs={"max_new_tokens": 100, "temperature": 0.7, "max_length": 100}
+        )
         prompt = PromptTemplate.from_template(
-            "다음 정보를 요약해줘. 중요한 내용만 추려서 3줄 이내로 정리해줘:\n\n{input}"
+            "다음 정보를 읽고, 핵심만 간결하게 요약해줘. 중복된 문장, 시스템 메시지는 제거하고, 요점을 2~3문장으로 정리해줘:\n\n{input}"
         )
         self.chain = prompt | llm | RunnableLambda(lambda x: {"text": x})
 
