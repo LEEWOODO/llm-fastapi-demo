@@ -5,18 +5,31 @@ from groq import Groq
 from langchain_core.language_models.llms import LLM
 from langchain_huggingface import HuggingFacePipeline
 from transformers import pipeline
+from .base import LLMProvider
 
-# ✅ HuggingFace LLM
-qa_pipeline = pipeline(
-    "text-generation",
-    model="tiiuae/falcon-rw-1b",
-    device=-1
-)
+class DefaultLLMProvider(LLMProvider):
+    def __init__(self):
+        pipe = pipeline("text-generation", model="EleutherAI/gpt-neo-1.3B")
+        self.llm = HuggingFacePipeline(pipeline=pipe)
 
-llm = HuggingFacePipeline(
-    pipeline=qa_pipeline,
-    model_kwargs={"max_new_tokens": 100, "temperature": 0.7}
-)
+    def get_chain(self):
+        return self.llm
+
+class FalconLLMProvider(LLMProvider):
+    def __init__(self):
+        pipe = pipeline("text-generation", model="tiiuae/falcon-rw-1b", device=-1)
+        self.llm = HuggingFacePipeline(
+            pipeline=pipe,
+            model_kwargs={"max_new_tokens": 100, "temperature": 0.7}
+        )
+
+    def get_chain(self):
+        return self.llm
+
+# ✅ Groq Provider (전략 패턴)
+class GroqAgentProvider(LLMProvider):
+    def get_chain(self):
+        return GroqAgentLLM()
 
 
 # ✅ Groq 기반 LLM

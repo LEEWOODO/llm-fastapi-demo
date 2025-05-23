@@ -4,7 +4,7 @@ from langchain_community.vectorstores import OpenSearchVectorSearch
 from langchain_huggingface import HuggingFaceEmbeddings
 from langgraph.graph import StateGraph, END
 
-from llm.provider import llm
+from llm.provider import FalconLLMProvider
 
 # ✅ 검색 전용으로 vectorstore 생성
 embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
@@ -52,7 +52,7 @@ def rerank_node(state: RAGState) -> RAGState:
         prompt = RERANK_PROMPT.format(query=state["query"], doc=doc.page_content)
 
         try:
-            response = llm.invoke(prompt)
+            response = FalconLLMProvider.invoke(prompt)
             # LLM 응답에서 숫자만 추출 (예: "0.9")
             rerank_score = float(response.strip())
         except Exception as e:
@@ -82,7 +82,7 @@ def answer_node(state: RAGState) -> RAGState:
         f"질문: {state['query']}\n"
         "답변:"
     )
-    result = llm.invoke(prompt)
+    result = FalconLLMProvider.invoke(prompt)
     return {**state, "answer": result}
 
 

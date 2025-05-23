@@ -50,7 +50,7 @@ llm = HuggingFacePipeline(
 )
 
 # 7. 파이프라인 구성 및 실행
-chain = RunnableLambda(lambda question: llm.invoke(
+chain = RunnableLambda(lambda question: FalconLLMProvider.invoke(
     prompt_template.format(context=context, question=question)
 ))
 

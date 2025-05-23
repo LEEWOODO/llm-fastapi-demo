@@ -15,7 +15,7 @@ from agent.tools.calculator import calculator
 
 from langchain.agents import initialize_agent, Tool
 from langchain.agents.agent_types import AgentType
-from llm.provider import GroqAgentLLM
+from llm.provider import GroqAgentProvider
 
 tools = [
     Tool.from_function(
@@ -46,12 +46,9 @@ class SafeFinalAnswerParser(AgentOutputParser):
         raise OutputParserException(f"파싱 실패: Final Answer 포맷이 아닙니다\n{text}")
 
 
-# Groq 기반 LLM 사용
-llm = GroqAgentLLM()
-
 agent_executor = initialize_agent(
     tools=tools,
-    llm=llm,
+    llm=GroqAgentProvider().get_chain(),
     agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
     verbose=True,
     handle_parsing_errors=True,
