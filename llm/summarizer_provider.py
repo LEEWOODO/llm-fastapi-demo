@@ -7,6 +7,7 @@ from .base import LLMProvider
 class SummarizerProvider(LLMProvider):
     def __init__(self):
         # pipe = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+        # 모델 로드
         pipe = pipeline("summarization", model="t5-small")
 
         llm = HuggingFacePipeline(

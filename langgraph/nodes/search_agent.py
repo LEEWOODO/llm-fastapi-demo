@@ -6,6 +6,11 @@ class MultiAgentState(TypedDict):
     search_result: str
 
 
+def truncate_text(text: str, max_tokens: int = 1800) -> str:
+    # 너무 길 경우 앞쪽 일부만 retain (tokenizer 안 쓰고 단순 토큰 수 기반 처리)
+    return ' '.join(text.split()[:max_tokens])
+
+
 def search_agent_node(state: MultiAgentState) -> MultiAgentState:
     """
     🔍 RAG 기반 검색 Agent 노드
@@ -14,5 +19,9 @@ def search_agent_node(state: MultiAgentState) -> MultiAgentState:
     """
     query = state["query"]
     result = rag_chain.invoke({"query": query})
-    state["search_result"] = result["result"]
+
+    answer = result["result"]
+    answer = truncate_text(answer, max_tokens=1800)  # ✅ LLM input에 안전한 길이
+
+    state["search_result"] = answer
     return state

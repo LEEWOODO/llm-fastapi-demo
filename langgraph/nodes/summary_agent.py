@@ -44,6 +44,11 @@ def clean_search_result(text: str, query: str) -> str:
     return filtered if filtered.strip() else text.strip()
 
 
+def truncate_text(text: str, max_tokens: int = 1800) -> str:
+    # 너무 길 경우 앞쪽 일부만 retain (tokenizer 안 쓰고 단순 토큰 수 기반 처리)
+    return ' '.join(text.split()[:max_tokens])
+
+
 def summary_agent_node(state: MultiAgentState) -> MultiAgentState:
     """
     📝 요약 Agent 노드
@@ -59,7 +64,8 @@ def summary_agent_node(state: MultiAgentState) -> MultiAgentState:
         return state
 
     cleaned_search = clean_search_result(search, query)
-
+    # cleaned_search = truncate_text(cleaned_search, 1800)
+    
     # ✅ 너무 짧으면 요약하지 말고 그대로 사용
     if len(cleaned_search.split()) <= 5:
         state["final_summary"] = cleaned_search
