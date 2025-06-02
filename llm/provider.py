@@ -34,7 +34,7 @@ class GroqAgentProvider(LLMProvider):
 
 # ✅ Groq 기반 LLM
 class GroqAgentLLM(LLM):
-    model_name: ClassVar[str] = "llama3-8b-8192"
+    model_name: ClassVar[str] = "llama-3.1-8b-instant"
 
     @property
     def _llm_type(self) -> str:

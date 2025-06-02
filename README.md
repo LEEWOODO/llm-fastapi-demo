@@ -22,7 +22,7 @@
 ### ✅ LangChain Agent
 - Tool: Calculator (PythonREPLTool 기반)
 - 커스텀 OutputParser를 통해 Final Answer를 안정적으로 추출
-- LLM: Groq 기반 `llama3-8b-8192`
+- LLM: Groq 기반 `llama-3.1-8b-instant`
 - 시스템 프롬프트를 통한 행동 유도
 - `/agent`
 
